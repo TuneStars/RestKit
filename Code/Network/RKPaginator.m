@@ -44,6 +44,7 @@ static NSUInteger RKPaginatorDefaultPerPage = 25;
 @property (nonatomic, assign, readwrite) NSUInteger pageCount;
 @property (nonatomic, assign, readwrite) NSUInteger objectCount;
 @property (nonatomic, assign, readwrite) BOOL loaded;
+@property (nonatomic, assign, readwrite) BOOL loadInProgress;
 @property (nonatomic, strong, readwrite) RKMappingResult *mappingResult;
 @property (nonatomic, strong, readwrite) NSError *error;
 @property (nonatomic, strong, readwrite) RKObjectRequestOperation *objectRequestOperation;
@@ -111,8 +112,17 @@ static NSUInteger RKPaginatorDefaultPerPage = 25;
 - (void)setCompletionBlockWithSuccess:(void (^)(RKPaginator *paginator, NSArray *objects, NSUInteger page))success
                               failure:(void (^)(RKPaginator *paginator, NSError *error))failure
 {
-    self.successBlock = success;
-    self.failureBlock = failure;
+    __weak typeof(self) wSelf = self;
+    
+    self.successBlock = ^(RKPaginator *paginator, NSArray *objects, NSUInteger page) {
+        wSelf.loadInProgress = NO;
+        if (success) success(paginator, objects, page);
+    };
+    
+    self.failureBlock = ^(RKPaginator *paginator, NSError *error) {
+        wSelf.loadInProgress = NO;
+        if (failure) failure(paginator, error);
+    };
 }
 
 // Private. Public consumers can rely on isLoaded
@@ -177,6 +187,8 @@ static NSUInteger RKPaginatorDefaultPerPage = 25;
 
 - (void)loadPage:(NSUInteger)pageNumber
 {
+    self.loadInProgress = YES;
+    
     if (self.objectRequestOperation.HTTPRequestOperation.response) {
         // The user by calling loadPage is ready to perform the next request so invalidate objectRequestOperation
         self.objectRequestOperation = nil;
@@ -276,6 +288,7 @@ static NSUInteger RKPaginatorDefaultPerPage = 25;
 {
     [self.objectRequestOperation cancel];
     self.objectRequestOperation = nil;
+    self.loadInProgress = NO;
 }
 
 #pragma mark - iOS 5 proxy attributes

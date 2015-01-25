@@ -190,6 +190,13 @@
 @property (nonatomic, readonly, getter = isLoaded) BOOL loaded;
 
 /**
+ A Boolean value indicating if the paginator is currently executing a request
+
+ @returns YES when the paginator is currently executing a request
+ */
+@property (nonatomic, assign, readonly) BOOL loadInProgress;
+
+/**
  Returns the page number for the most recently loaded page of objects.
 
  @return The page number for the current page of objects.
